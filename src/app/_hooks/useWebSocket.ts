@@ -17,11 +17,7 @@ interface WebSocketHook {
 }
 
 const useWebSocket = (url: string): WebSocketHook => {
-  const [gameState, setGameState] = useState<TGameState>({
-    players: [],
-    status: EGameStatus.AWAITING,
-    winner: undefined,
-  });
+  const [gameState, setGameState] = useState<TGameState | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const ws = useRef<WebSocket | null>(null);
 

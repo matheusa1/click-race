@@ -67,10 +67,10 @@ export class GameMemory implements IGameStateProvider {
 
       this.onDataCallback({ ...this.gameState });
 
-      if (this.gameTicks >= 10) {
+      if (this.gameTicks >= 20) {
         this.endGame();
       }
-    }, 1500);
+    }, 200);
   }
 
   private endGame(): void {
