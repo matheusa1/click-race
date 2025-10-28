@@ -4,20 +4,17 @@ import type { Socket } from "net";
 import next from "next";
 import { parse } from "url";
 import { WebSocket, WebSocketServer } from "ws";
+import { SerialPortDataSource } from "@/core/module/game/infra/game.serial";
 import { GameUseCase } from "./core/module/game/application/game.use.case";
-import {
-  EGameStatus,
-  type TGameState,
-} from "./core/module/game/domain/game.entity";
+import type { TGameState } from "./core/module/game/domain/game.entity";
+import type { IGameStateProvider } from "./core/module/game/domain/game.ports";
 import { GameMemory } from "./core/module/game/infra/game.memory";
+
+// import { GameMemory } from "./core/module/game/infra/game.memory";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = 3000;
-
-interface WebSocketMessage {
-  data: string;
-}
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
@@ -28,7 +25,16 @@ interface ServerMessage {
 }
 
 app.prepare().then(() => {
-  const dataSource = new GameMemory();
+  const SERIAL_PORT_PATH = process.env.SERIAL_PORT || "/dev/ttyACM0";
+
+  let dataSource: IGameStateProvider;
+
+  if (process.env.NODE_ENV === "test") {
+    dataSource = new GameMemory();
+  } else {
+    dataSource = new SerialPortDataSource(SERIAL_PORT_PATH);
+  }
+
   const gameUseCase = new GameUseCase(dataSource);
 
   const server = createServer(

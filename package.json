@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "test": "NODE_ENV=test tsx watch src/server.ts",
     "build": "next build",
     "start": "NODE_ENV=production node .next/server/server.js",
     "lint": "biome check",
@@ -13,6 +14,7 @@
     "next": "16.0.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "serialport": "^13.0.0",
     "ws": "^8.18.3"
   },
   "devDependencies": {
@@ -20,6 +22,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/serialport": "^10.2.0",
     "@types/ws": "^8.18.1",
     "babel-plugin-react-compiler": "1.0.0",
     "tsx": "^4.20.6",
