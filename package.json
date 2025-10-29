@@ -4,9 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "NODE_ENV=test tsx watch src/server.ts",
     "build": "next build",
-    "start": "NODE_ENV=production node .next/server/server.js",
+    "start": "node .next/server/server.js",
     "lint": "biome check",
     "format": "biome format --write"
   },
