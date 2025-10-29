@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "NODE_ENV=dev tsx watch src/server.ts",
+    "test": "NODE_ENV=test tsx watch src/server.ts",
+    "dev:win": "set NODE_ENV=dev&& tsx watch src/server.ts",
+    "test:win": "set NODE_ENV=test&& tsx watch src/server.ts",
     "build": "next build",
     "start": "node .next/server/server.js",
     "lint": "biome check",

@@ -6,7 +6,7 @@ import { getGameStatus } from "./_utils/getGameStatus";
 
 export default function Home() {
   const { gameState, isConnected, sendMessage } = useWebSocket(
-    "ws://localhost:3000/api/websocket",
+    "ws://localhost:3000/api/websocket"
   );
 
   const handleStartGame = () => {
@@ -117,7 +117,7 @@ export default function Home() {
       <div style={{ display: "flex", gap: 32 }}>
         {gameState?.players.map((player) => (
           <div
-            className={`w-50 h-70 bg-linear-to-r from-green-500 to-pink-500`}
+            className={`w-50 h-70 bg-linear-to-r from-red-800 to-pink-500`}
             style={{
               marginTop: player.clicks * 40,
             }}

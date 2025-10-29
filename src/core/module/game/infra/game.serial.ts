@@ -3,8 +3,8 @@ import type { TGameState } from "../domain/game.entity";
 import type { IGameStateProvider } from "../domain/game.ports";
 
 export class SerialPortDataSource implements IGameStateProvider {
-  private port: SerialPort;
-  private parser: ReadlineParser;
+  private readonly port: SerialPort;
+  private readonly parser: ReadlineParser;
   private onDataCallback: (data: TGameState) => void = () => {};
 
   /**
@@ -28,10 +28,10 @@ export class SerialPortDataSource implements IGameStateProvider {
       if (err) {
         console.error(
           `Erro ao abrir a porta serial ${this.port.path}:`,
-          err.message,
+          err.message
         );
         console.error(
-          "Verifique se a placa está conectada e o caminho da porta está correto.",
+          "Verifique se a placa está conectada e o caminho da porta está correto."
         );
         return;
       }
@@ -45,7 +45,7 @@ export class SerialPortDataSource implements IGameStateProvider {
       } catch {
         console.error(
           "Erro ao processar dados da porta serial. Dado recebido:",
-          line,
+          line
         );
       }
     });
