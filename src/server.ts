@@ -10,8 +10,6 @@ import type { TGameState } from "./core/module/game/domain/game.entity";
 import type { IGameStateProvider } from "./core/module/game/domain/game.ports";
 import { GameMemory } from "./core/module/game/infra/game.memory";
 
-// import { GameMemory } from "./core/module/game/infra/game.memory";
-
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = 3000;
