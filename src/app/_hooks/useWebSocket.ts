@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  EGameStatus,
-  type TGameState,
-} from "@/core/module/game/domain/game.entity";
+import type { TGameState } from "@/core/module/game/domain/game.entity";
 
 // Reutilizamos a mesma interface do backend para garantir a consistência
 interface ServerMessage {
