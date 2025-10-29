@@ -14,7 +14,7 @@ export class SerialPortDataSource implements IGameStateProvider {
   constructor(portPath: string) {
     this.port = new SerialPort({
       path: portPath,
-      baudRate: 9600,
+      baudRate: 115200,
       autoOpen: false,
     });
 

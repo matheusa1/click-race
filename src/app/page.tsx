@@ -113,6 +113,20 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <div style={{ display: "flex", gap: 32 }}>
+        {gameState?.players.map((player) => (
+          <div
+            className={`w-50 h-70 bg-linear-to-r from-green-500 to-pink-500`}
+            style={{
+              marginTop: player.clicks * 40,
+            }}
+            key={player.id}
+          >
+            {player.id}
+          </div>
+        ))}
+      </div>
     </main>
   );
 }
