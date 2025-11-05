@@ -28,10 +28,10 @@ export class SerialPortDataSource implements IGameStateProvider {
       if (err) {
         console.error(
           `Erro ao abrir a porta serial ${this.port.path}:`,
-          err.message
+          err.message,
         );
         console.error(
-          "Verifique se a placa está conectada e o caminho da porta está correto."
+          "Verifique se a placa está conectada e o caminho da porta está correto.",
         );
         return;
       }
@@ -42,12 +42,8 @@ export class SerialPortDataSource implements IGameStateProvider {
       try {
         const gameState: TGameState = JSON.parse(line);
         this.onDataCallback(gameState);
-      } catch {
-        console.error(
-          "Erro ao processar dados da porta serial. Dado recebido:",
-          line
-        );
-      }
+      } catch {}
+      console.log(line);
     });
 
     this.port.on("error", (error) => {

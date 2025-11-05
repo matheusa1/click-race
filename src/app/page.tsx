@@ -6,7 +6,7 @@ import { getGameStatus } from "./_utils/getGameStatus";
 
 export default function Home() {
   const { gameState, isConnected, sendMessage } = useWebSocket(
-    "ws://localhost:3000/api/websocket"
+    "ws://localhost:3000/api/websocket",
   );
 
   const handleStartGame = () => {
@@ -15,6 +15,10 @@ export default function Home() {
 
   const handleRestartGame = () => {
     sendMessage("RESTART_GAME");
+  };
+
+  const handleFinishGame = () => {
+    sendMessage("FINISH_GAME");
   };
 
   const gameStatus = getGameStatus(gameState);
@@ -60,6 +64,20 @@ export default function Home() {
               }}
             >
               Iniciar Jogo
+            </button>
+          )}
+
+          {gameState.status === EGameStatus.IN_PROGRESS && (
+            <button
+              onClick={handleFinishGame}
+              type="button"
+              style={{
+                padding: "10px 20px",
+                fontSize: "1.2rem",
+                cursor: "pointer",
+              }}
+            >
+              Finalizar Jogo
             </button>
           )}
 

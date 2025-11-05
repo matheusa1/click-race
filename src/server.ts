@@ -114,6 +114,11 @@ app.prepare().then(() => {
           console.log("Recebido comando para reiniciar o jogo.");
           gameUseCase.restartGame();
         }
+
+        if (message === "FINISH_GAME") {
+          console.log("Recebido comando para encerrar o jogo.");
+          gameUseCase.endGame();
+        }
       } catch (error) {
         console.error("Erro ao processar mensagem do cliente:", error);
       }
