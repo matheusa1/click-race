@@ -27,11 +27,11 @@ app.prepare().then(() => {
 
   let dataSource: IGameStateProvider;
 
-  //if (process.env.NODE_ENV === "test") {
+  if (process.env.NODE_ENV === "test") {
     dataSource = new GameMemory();
-  //} else {
-    //dataSource = new SerialPortDataSource(SERIAL_PORT_PATH);
-  //}
+  } else {
+    dataSource = new SerialPortDataSource(SERIAL_PORT_PATH);
+  }
 
   const gameUseCase = new GameUseCase(dataSource);
 
