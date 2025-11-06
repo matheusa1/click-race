@@ -1,38 +1,50 @@
-#include <SPI.h>
-#include "printf.h"
 #include "RF24.h"
+#include "printf.h"
 #include <ArduinoJson.h>
+#include <SPI.h>
 
 #define CE_PIN 7
 #define CSN_PIN 8
 
 // Estados do jogo
-enum EGameStatus {
-  AWAITING = 1,
-  IN_PROGRESS = 2,
-  FINISHED = 3
-};
+enum EGameStatus { AWAITING = 1, IN_PROGRESS = 2, FINISHED = 3 };
+
+#define SYN 100
+#define SYN_ACK 101
+#define ACK 102
+
+#define TIMEOUT 1000
 
 RF24 radio(CE_PIN, CSN_PIN);
 
+#define ORIGEM 3
+#define PLAYER_1 45
+#define PLAYER_2 9
+
 uint64_t address[2] = {0x3030303030LL, 0x3030303031LL};
-uint8_t origem = 1;
 byte payloadRX[32];
 
 // Contadores e estado do jogo
 int contadorP1 = 0;
 int contadorP2 = 0;
+
+int diferencialP1 = -1;
+int diferencialP2 = -1;
+
 EGameStatus gameStatus = AWAITING;
-int winner = 0;
+
+int winner = -1;
+
 unsigned long lastStatusSend = 0;
 bool resetSent = false;
 
 void setup() {
   Serial.begin(115200);
-  
+
   if (!radio.begin()) {
     Serial.println(F("Radio hardware not responding!!"));
-    while (1) {}
+    while (1) {
+    }
   }
 
   radio.setPALevel(RF24_PA_MAX);
@@ -49,32 +61,110 @@ void setup() {
   Serial.println("esperando começar");
 }
 
-void enviaReset() {
-  // Envia comando de reset para ambos os players
-  byte resetCmd[5] = {origem, 0, 2, 0, 0}; // [origem, broadcast, RESET, 0, 0]
-  
-  radio.flush_tx();
-  
+int escutaHandShake(int comandoEsperado, uint8_t playerAddress) {
+  // loop até receber o ack ou o timeout estourar
+  int recebidoComSucesso = 0;
+  radio.startListening();
   unsigned long inicio = millis();
-  while (millis() - inicio < 200) {
-    radio.startListening();
-    delayMicroseconds(50);
-    radio.stopListening();
-    
-    if (!radio.testCarrier()) {
-      radio.write(&resetCmd, sizeof(resetCmd));
-      Serial.println("Reset enviado para players");
-      resetSent = true;
-      break;
+  while (millis() - inicio < TIMEOUT && recebidoComSucesso == 0) {
+    if (radio.available()) {
+      byte pacote[4];
+      radio.read(&pacote, sizeof(pacote));
+
+      uint8_t remetente = pacote[0];
+      uint8_t destino = pacote[1];
+      int comando = pacote[2];
+
+      Serial.print("Recebido ");
+      Serial.print(pacote[2]);
+      Serial.print(" de ");
+      Serial.println(remetente);
+
+      if (remetente != playerAddress || destino != ORIGEM) {
+          Serial.print("Origem ");
+          Serial.print(remetente);
+          Serial.print(" ou destino ");
+          Serial.print(destino);
+          Serial.print(" inválido");
+          Serial.println();
+        continue;
+      }
+
+      if (comando == comandoEsperado) {
+          Serial.print("Comando ");
+          Serial.print(comando);
+          Serial.print(" recebido com sucesso");
+          Serial.println();
+        recebidoComSucesso = 1;
+      }
     }
-    delayMicroseconds(200);
   }
+  return recebidoComSucesso;
 }
 
-void enviaACK(uint8_t destino) {
-  byte ack[3] = {origem, destino, 1};
-  radio.flush_tx();
-  radio.write(&ack, sizeof(ack));
+int resetPlayer(int playerAddress) {
+  byte resetCmd[4] = {ORIGEM, playerAddress, 2,
+                      0}; // {origem, endereço, comando, dados}
+  // THREE_HAND_SHAKE_CODE
+  int conectado = 0;
+  unsigned long iniciof = millis();
+  int estado = 0;
+  while (conectado == 0 && millis() - iniciof < 5000) {
+    radio.flush_tx();
+    unsigned long inicio = millis();
+
+    while (millis() - inicio < 200) {
+      radio.startListening();
+      delayMicroseconds(50);
+      radio.stopListening();
+
+      if (!radio.testCarrier()) {
+        if (estado == 0) {
+          resetCmd[2] = SYN;
+        } else if (estado == 1) {
+          resetCmd[2] = ACK;
+        }
+        radio.write(&resetCmd, sizeof(resetCmd));
+
+        Serial.print("Enviado ");
+        Serial.print(resetCmd[2]);
+        Serial.print(" para player ");
+        Serial.println(playerAddress);
+
+        break;
+      }
+      delayMicroseconds(200);
+    }
+
+    if (estado == 0) {
+      int resultado = escutaHandShake(SYN_ACK, playerAddress);
+      if (resultado == 1) {
+        estado = 1;
+        continue;
+      }
+    } else if (estado == 1) {
+      conectado = 1;
+    }
+  }
+
+  return conectado;
+}
+
+int enviaReset() {
+  int resultado = resetPlayer(PLAYER_1);
+  if (resultado == 0) {
+    Serial.println("Erro ao resetar player 1");
+    return 0;
+  }
+
+  delay(2000);
+
+  resultado = resetPlayer(PLAYER_2);
+  if (resultado == 0) {
+    Serial.println("Erro ao resetar player 2");
+    return 0;
+  }
+  return 1;
 }
 
 void calculaVencedor() {
@@ -88,48 +178,57 @@ void calculaVencedor() {
 }
 
 void enviaJSONSerial() {
-  calculaVencedor();
-  
   StaticJsonDocument<512> doc;
   doc["status"] = gameStatus;
-  
+
   JsonArray players = doc.createNestedArray("players");
-  
+
   JsonObject player1 = players.createNestedObject();
   player1["id"] = 1;
   player1["clicks"] = contadorP1;
-  
+
   JsonObject player2 = players.createNestedObject();
   player2["id"] = 2;
   player2["clicks"] = contadorP2;
-  
-  doc["winner"] = winner;
-  
+
+  if(winner != -1) doc["winner"] = winner;
+
   String jsonString;
   serializeJson(doc, jsonString);
   Serial.println(jsonString);
+}
+
+void resetaJogo() {
+  contadorP1 = 0;
+  contadorP2 = 0;
+
+  // reseta os diferenciais
+  diferencialP1 = -1;
+  diferencialP2 = -1;
+  winner = -1;
 }
 
 void processaComandoSerial() {
   if (Serial.available()) {
     String comando = Serial.readStringUntil('\n');
     comando.trim();
-    
+
     if (comando == "1") {
+      resetaJogo();
       gameStatus = AWAITING;
-      resetSent = false;
       Serial.println("esperando começar");
     } else if (comando == "2") {
+        resetaJogo();
+        int resultado = enviaReset();
+        if(resultado == 0) {
+            return;
+        }
       gameStatus = IN_PROGRESS;
-      // Zera contadores localmente
-      contadorP1 = 0;
-      contadorP2 = 0;
-      winner = 0;
-      // Envia reset para players
-      enviaReset();
+      resetaJogo();
       enviaJSONSerial(); // Envia estado inicial
     } else if (comando == "3") {
       gameStatus = FINISHED;
+      calculaVencedor();
       enviaJSONSerial();
     }
   }
@@ -137,21 +236,22 @@ void processaComandoSerial() {
 
 void processaPacoteRF() {
   if (radio.available()) {
-    byte pacote[5];
+    byte pacote[4];
     radio.read(&pacote, sizeof(pacote));
-    
+
     // Só processa se o jogo estiver em progresso
-    if (gameStatus == IN_PROGRESS && pacote[1] == origem && pacote[2] == 0) {
+    if (gameStatus == IN_PROGRESS && pacote[1] == ORIGEM && pacote[2] == 0) {
       uint8_t remetente = pacote[0];
       int contador = pacote[3];
-      
-      if (remetente == 3) { // Player 1
-        contadorP1 = contador;
-      } else if (remetente == 2) { // Player 2
-        contadorP2 = contador;
+
+      if (remetente == PLAYER_1) { // Player 1
+        if(diferencialP1 == -1) diferencialP1 = contador;
+        contadorP1 = contador - diferencialP1;
+      } else if (remetente == PLAYER_2) { // Player 2
+          if(diferencialP2 == -1) diferencialP2 = contador;
+          contadorP2 = contador - diferencialP2;
       }
-      
-      enviaACK(remetente);
+
       enviaJSONSerial(); // Atualiza JSON a cada clique
     }
   }
@@ -160,7 +260,7 @@ void processaPacoteRF() {
 void loop() {
   // Processa comandos do Serial (juiz)
   processaComandoSerial();
-  
+
   // No estado AWAITING, não faz nada com o RF
   if (gameStatus == AWAITING) {
     // Apenas envia mensagem periódica
@@ -171,10 +271,10 @@ void loop() {
     delay(100);
     return;
   }
-  
+
   // Nos estados IN_PROGRESS e FINISHED, escuta o RF
   radio.startListening();
   processaPacoteRF();
-  
+
   delay(50);
 }
