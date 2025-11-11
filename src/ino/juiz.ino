@@ -48,7 +48,7 @@ void setup() {
   }
 
   radio.setPALevel(RF24_PA_MAX);
-  radio.setChannel(76);
+  radio.setChannel(13);
   radio.setPayloadSize(sizeof(payloadRX));
   radio.setAutoAck(false);
   radio.setCRCLength(RF24_CRC_DISABLED);
@@ -109,13 +109,13 @@ int resetPlayer(int playerAddress) {
   int conectado = 0;
   unsigned long iniciof = millis();
   int estado = 0;
-  while (conectado == 0 && millis() - iniciof < 5000) {
+  while (conectado == 0 && millis() - iniciof < 10000) {
     radio.flush_tx();
     unsigned long inicio = millis();
 
-    while (millis() - inicio < 200) {
+    while (millis() - inicio < 100) {
       radio.startListening();
-      delayMicroseconds(50);
+      delayMicroseconds(40);
       radio.stopListening();
 
       if (!radio.testCarrier()) {

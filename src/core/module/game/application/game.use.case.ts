@@ -43,7 +43,7 @@ export class GameUseCase {
    * Reinicia o jogo enviando o comando para a fonte de dados
    */
   public restartGame(): void {
-    this.dataSource.sendCommand("2");
+    this.dataSource.sendCommand("1");
   }
 
   /**

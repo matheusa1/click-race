@@ -1,15 +1,32 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { EGameStatus } from "@/core/module/game/domain/game.entity";
 import useWebSocket from "./_hooks/useWebSocket";
 import { getGameStatus } from "./_utils/getGameStatus";
 
+const currentIp = "192.168.18.90";
+
 export default function Home() {
   const { gameState, isConnected, sendMessage } = useWebSocket(
-    "ws://localhost:3000/api/websocket",
+    `ws://${currentIp}:3000/api/websocket`,
   );
+  const maxTime = 10;
+  const [gameTime, setGameTime] = useState<number>(0);
+
+  useEffect(() => {
+    if (gameState?.status === EGameStatus.IN_PROGRESS) {
+      const interval = setInterval(() => {
+        setGameTime((prevTime) => prevTime + 1);
+      }, 1000);
+
+      return () => {
+        setGameTime(0);
+        clearInterval(interval);
+      };
+    }
+  }, [gameState?.status]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -146,11 +163,17 @@ export default function Home() {
     sendMessage("RESTART_GAME");
   };
 
-  const handleFinishGame = () => {
+  const handleFinishGame = useCallback(() => {
     sendMessage("FINISH_GAME");
-  };
+  }, [sendMessage]);
 
   const gameStatus = getGameStatus(gameState);
+
+  useEffect(() => {
+    if (gameTime >= maxTime) {
+      handleFinishGame();
+    }
+  }, [gameTime, handleFinishGame]);
 
   return (
     <main className="p-8 font-sans max-w-6xl mx-auto min-h-screen relative">
@@ -159,6 +182,7 @@ export default function Home() {
         ref={canvasRef}
         className="fixed top-0 left-0 w-full h-full -z-10"
       />
+      <p>{gameTime}</p>
 
       {/* Conteúdo principal */}
       <div className="relative z-10">
@@ -269,8 +293,11 @@ export default function Home() {
                       🏆 Partida Finalizada!
                     </h3>
                     <p className="text-green-400 text-xl m-0 font-bold">
-                      Vencedor: {gameState.winner.id} com{" "}
-                      {gameState.winner.clicks} cliques!
+                      Vencedor: {gameState.winner} com{" "}
+                      {gameState.winner === gameState.players[0].id
+                        ? gameState.players[0].clicks
+                        : gameState.players[1].clicks}{" "}
+                      cliques!
                     </p>
                   </div>
                 )}

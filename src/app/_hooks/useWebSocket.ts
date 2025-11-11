@@ -47,6 +47,14 @@ const useWebSocket = (url: string): WebSocketHook => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(message);
     }
+
+    if (message === "RESTART_GAME") {
+      setGameState({
+        players: [],
+        status: EGameStatus.AWAITING,
+        winner: undefined,
+      });
+    }
   };
 
   return { gameState, isConnected, sendMessage };
