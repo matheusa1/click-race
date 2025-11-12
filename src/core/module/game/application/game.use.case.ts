@@ -1,4 +1,4 @@
-import type { TGameState } from "../domain/game.entity";
+import { EGameStatus, type TGameState } from "../domain/game.entity";
 import type { IGameStateProvider } from "../domain/game.ports";
 
 export class GameUseCase {
@@ -44,6 +44,11 @@ export class GameUseCase {
    */
   public restartGame(): void {
     this.dataSource.sendCommand("1");
+    this.handleDataSourceUpdate({
+      players: [],
+      status: EGameStatus.AWAITING,
+      winner: undefined,
+    });
   }
 
   /**

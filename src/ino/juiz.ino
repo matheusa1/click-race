@@ -210,6 +210,9 @@ void processaComandoSerial() {
             gameStatus = IN_PROGRESS;
             enviaJSONSerial();
         }
+        else {
+          Serial.println("ERRO_NO_HANDSHAKE");
+        }
     } else if (comando == "3") {
       Serial.println("Enviando comando FIN para parar o jogo.");
       sendCommandToPlayer(address[0], PLAYER_1, FIN);

@@ -175,6 +175,11 @@ export default function Home() {
     }
   }, [gameTime, handleFinishGame]);
 
+  const showStartButton =
+    gameState?.status === EGameStatus.AWAITING ||
+    gameState.status === EGameStatus.LOADING ||
+    gameState.status === EGameStatus.ERROR;
+
   return (
     <main className="p-8 font-sans max-w-6xl mx-auto min-h-screen relative">
       {/* Canvas do céu estrelado */}
@@ -237,10 +242,12 @@ export default function Home() {
                   </span>
                 </h2>
 
-                {gameState.status === EGameStatus.AWAITING && (
+                {showStartButton && (
                   <button
+                    disabled={gameState.status === EGameStatus.LOADING}
                     onClick={handleStartGame}
-                    className="px-8 py-3 text-lg font-semibold cursor-pointer border-none rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/40 hover:shadow-purple-500/60 hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group"
+                    data-disabled={gameState.status === EGameStatus.LOADING}
+                    className="data-[disabled=true]:opacity-50 data-[disabled=true]:cursor-not-allowed px-8 py-3 text-lg font-semibold cursor-pointer border-none rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/40 hover:shadow-purple-500/60 hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group"
                   >
                     <span className="relative z-10">🎮 Iniciar Jogo</span>
                     <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:left-full transition-all duration-500" />

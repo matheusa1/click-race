@@ -1,11 +1,12 @@
 import { ReadlineParser, SerialPort } from "serialport";
-import type { TGameState } from "../domain/game.entity";
+import { EGameStatus, type TGameState } from "../domain/game.entity";
 import type { IGameStateProvider } from "../domain/game.ports";
 
 export class SerialPortDataSource implements IGameStateProvider {
   private readonly port: SerialPort;
   private readonly parser: ReadlineParser;
   private onDataCallback: (data: TGameState) => void = () => {};
+  private isPending: boolean = false;
 
   /**
    * Construtor do nosso adaptador de porta serial.
@@ -41,9 +42,18 @@ export class SerialPortDataSource implements IGameStateProvider {
     this.parser.on("data", (line: string) => {
       try {
         const gameState: TGameState = JSON.parse(line);
+        this.isPending = false;
         this.onDataCallback(gameState);
       } catch {}
       console.log(line);
+      if (line.trim() === "ERRO_NO_HANDSHAKE") {
+        this.isPending = false;
+        this.onDataCallback({
+          players: [],
+          status: EGameStatus.ERROR,
+          winner: undefined,
+        });
+      }
     });
 
     this.port.on("error", (error) => {
@@ -52,6 +62,19 @@ export class SerialPortDataSource implements IGameStateProvider {
   }
 
   public sendCommand(command: string): void {
+    if (this.isPending) {
+      console.warn("Comando pendente ainda não foi processado.");
+      return;
+    }
+    if (command === "2") {
+      this.isPending = true;
+      this.onDataCallback({
+        players: [],
+        status: EGameStatus.LOADING,
+        winner: undefined,
+      });
+    }
+
     const commandToSend = `${command}\n`;
     this.port.write(commandToSend, (err) => {
       if (err) {
