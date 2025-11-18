@@ -17,7 +17,9 @@ enum EGameStatus {
 #define SYN_ACK 101
 #define ACK 102
 #define DATA 200
-#define FIN 201
+#define DATA_ACK 201
+#define FIN 202
+#define FIN_ACK 203
 
 #define TIMEOUT 1000
 
@@ -61,7 +63,39 @@ void setup() {
   Serial.println("esperando começar");
 }
 
-void sendCommandToPlayer(uint64_t playerPipe, uint8_t playerAddr, int command) {
+int escutaHandShake(int comandoEsperado, uint8_t playerAddress) {
+  int recebidoComSucesso = 0;
+  radio.startListening();
+  unsigned long inicio = millis();
+  while (millis() - inicio < TIMEOUT && recebidoComSucesso == 0) {
+    byte pipeNum;
+
+    if (radio.available(&pipeNum)) {
+      byte pacote[4];
+      radio.read(&pacote, sizeof(pacote));
+
+      uint8_t remetente = pacote[0];
+      uint8_t destino = pacote[1];
+      int comando = pacote[2];
+
+      Serial.print("Recebido comando ");
+      Serial.print(comando);
+      Serial.print(" da origem ");
+      Serial.println(remetente);
+
+      if (remetente != playerAddress || destino != ORIGEM) {
+        continue;
+      }
+
+      if (comando == comandoEsperado) {
+        recebidoComSucesso = 1;
+      }
+    }
+  }
+  return recebidoComSucesso;
+}
+
+int sendCommandToPlayer(uint64_t playerPipe, uint8_t playerAddr, int command, int expectedResponse) {
   radio.stopListening();
   radio.openWritingPipe(playerPipe);
 
@@ -87,42 +121,17 @@ void sendCommandToPlayer(uint64_t playerPipe, uint8_t playerAddr, int command) {
     delayMicroseconds(200);
   }
 
-  radio.startListening();
-}
-
-
-int escutaHandShake(int comandoEsperado, uint8_t playerAddress) {
-  int recebidoComSucesso = 0;
-  radio.startListening();
-  unsigned long inicio = millis();
-  while (millis() - inicio < TIMEOUT && recebidoComSucesso == 0) {
-    byte pipeNum;
-
-    Serial.println("LOOP");
-
-    if (radio.available(&pipeNum)) {
-      byte pacote[4];
-      radio.read(&pacote, sizeof(pacote));
-
-      uint8_t remetente = pacote[0];
-      uint8_t destino = pacote[1];
-      int comando = pacote[2];
-
-      Serial.print("Recebido comando ");
-      Serial.print(comando);
-      Serial.print(" da origem ");
-      Serial.println(remetente);
-
-      if (remetente != playerAddress || destino != ORIGEM) {
-        continue;
-      }
-
-      if (comando == comandoEsperado) {
-        recebidoComSucesso = 1;
-      }
-    }
+  int result = escutaHandShake(expectedResponse, playerAddr);
+  if(!result) {
+    Serial.print("Falha ao escutar o comando ");
+    Serial.print(expectedResponse);
+    Serial.print(" do jogador ");
+    Serial.println(playerAddr);
+    return 0;
   }
-  return recebidoComSucesso;
+
+  radio.startListening();
+  return 1;
 }
 
 int resetPlayer(uint64_t playerPipe, int playerAddress) {
@@ -235,8 +244,14 @@ void processaComandoSerial() {
         int resultadoHandshake = enviaReset();
         if(resultadoHandshake == 1) {
             Serial.println("Handshakes concluidos. Enviando comando DATA para iniciar o jogo.");
-            sendCommandToPlayer(address[0], PLAYER_1, DATA);
-            sendCommandToPlayer(address[1], PLAYER_2, DATA);
+            int result = sendCommandToPlayer(address[0], PLAYER_1, DATA, DATA_ACK);
+            if(!result) {
+              return;
+            }
+            result = sendCommandToPlayer(address[1], PLAYER_2, DATA, DATA_ACK);
+            if(!result) {
+              return;
+            }
             gameStatus = IN_PROGRESS;
             enviaJSONSerial();
         }
@@ -245,9 +260,14 @@ void processaComandoSerial() {
         }
     } else if (comando == "3") {
       Serial.println("Enviando comando FIN para parar o jogo.");
-      sendCommandToPlayer(address[0], PLAYER_1, FIN);
-      sendCommandToPlayer(address[1], PLAYER_2, FIN);
-
+      int result = sendCommandToPlayer(address[0], PLAYER_1, FIN, FIN_ACK);
+      if(!result) {
+        return;
+      }
+      result = sendCommandToPlayer(address[1], PLAYER_2, FIN, FIN_ACK);
+  if(!result) {
+        return;
+      }
       gameStatus = FINISHED;
       calculaVencedor();
       enviaJSONSerial();

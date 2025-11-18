@@ -11,7 +11,9 @@
 #define SYN_ACK 101
 #define ACK 102
 #define DATA 200
-#define FIN 201
+#define DATA_ACK 201
+#define FIN 202
+#define FIN_ACK 203
 
 #define TIMEOUT 1000
 
@@ -49,7 +51,9 @@ void setup() {
   radio.openReadingPipe(1, address[0]);
 
   radio.startListening();
-  Serial.println("Player - Aguardando início...");
+  Serial.print("Player ");
+  Serial.print(ORIGEM);
+  Serial.println(" - Aguardando início...");
 }
 
 int escutaHandShake(int comandoEsperado) {
@@ -99,9 +103,7 @@ void enviaDados(int comando, int dado) {
 
   if (radio.write(&pacote, sizeof(pacote))) {
     Serial.println("Falha no envio.");
-  }
-
-  
+  }  
 }
 
 int processaHandShake() {
@@ -141,11 +143,13 @@ void processaComandoRF() {
       case DATA:
         contador = 0;
         jogoAtivo = true;
+        enviaDados(DATA_ACK, 0);
         Serial.println("COMANDO DATA RECEBIDO - Jogo iniciado! Contador zerado.");
         break;
 
       case FIN:
         jogoAtivo = false;
+        enviaDados(FIN_ACK, 0);
         Serial.println("COMANDO FIN RECEBIDO - Jogo finalizado!");
         break;
     }
