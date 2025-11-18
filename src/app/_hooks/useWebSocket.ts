@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { TGameState } from "@/core/module/game/domain/game.entity";
+import {
+  EGameStatus,
+  type TGameState,
+} from "@/core/module/game/domain/game.entity";
 
 // Reutilizamos a mesma interface do backend para garantir a consistência
 interface ServerMessage {
@@ -14,7 +17,11 @@ interface WebSocketHook {
 }
 
 const useWebSocket = (url: string): WebSocketHook => {
-  const [gameState, setGameState] = useState<TGameState | null>(null);
+  const [gameState, setGameState] = useState<TGameState | null>({
+    players: [],
+    status: EGameStatus.AWAITING,
+    winner: undefined,
+  });
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const ws = useRef<WebSocket | null>(null);
 
@@ -39,6 +46,14 @@ const useWebSocket = (url: string): WebSocketHook => {
   const sendMessage = (message: string) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(message);
+    }
+
+    if (message === "RESTART_GAME") {
+      setGameState({
+        players: [],
+        status: EGameStatus.AWAITING,
+        winner: undefined,
+      });
     }
   };
 

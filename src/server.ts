@@ -11,7 +11,7 @@ import type { IGameStateProvider } from "./core/module/game/domain/game.ports";
 import { GameMemory } from "./core/module/game/infra/game.memory";
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = "localhost";
+const hostname = "0.0.0.0";
 const port = 3000;
 
 const app = next({ dev, hostname, port });
@@ -113,6 +113,11 @@ app.prepare().then(() => {
         if (message === "RESTART_GAME") {
           console.log("Recebido comando para reiniciar o jogo.");
           gameUseCase.restartGame();
+        }
+
+        if (message === "FINISH_GAME") {
+          console.log("Recebido comando para encerrar o jogo.");
+          gameUseCase.endGame();
         }
       } catch (error) {
         console.error("Erro ao processar mensagem do cliente:", error);

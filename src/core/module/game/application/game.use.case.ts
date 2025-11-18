@@ -1,4 +1,4 @@
-import type { TGameState } from "../domain/game.entity";
+import { EGameStatus, type TGameState } from "../domain/game.entity";
 import type { IGameStateProvider } from "../domain/game.ports";
 
 export class GameUseCase {
@@ -29,7 +29,7 @@ export class GameUseCase {
    * Inicia o jogo enviando o comando para a fonte de dados.
    */
   public startGame(): void {
-    this.dataSource.sendCommand("START_GAME");
+    this.dataSource.sendCommand("2");
   }
 
   /**
@@ -43,6 +43,18 @@ export class GameUseCase {
    * Reinicia o jogo enviando o comando para a fonte de dados
    */
   public restartGame(): void {
-    this.dataSource.sendCommand("RESTART_GAME");
+    this.dataSource.sendCommand("1");
+    this.handleDataSourceUpdate({
+      players: [],
+      status: EGameStatus.AWAITING,
+      winner: undefined,
+    });
+  }
+
+  /**
+   * Encerra o jogo enviando o comando para a fonte de dados
+   */
+  public endGame(): void {
+    this.dataSource.sendCommand("3");
   }
 }

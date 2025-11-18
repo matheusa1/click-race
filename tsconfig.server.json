@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // ESSENCIAL: O Node.js usa o sistema de módulos CommonJS
+    "module": "CommonJS",
+
+    // <<< ADICIONE ESTA LINHA PARA RESOLVER O ERRO >>>
+    // Sobrescreve o "bundler" herdado para o modo clássico do Node.js
+    "moduleResolution": "Node",
+
+    // Onde colocar o arquivo JavaScript compilado
+    "outDir": "dist",
+    // Garante que o tsc realmente gere os arquivos JS
+    "noEmit": false,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  // Diz ao compilador para incluir APENAS o arquivo do servidor
+  "include": ["src/server.ts"]
+}

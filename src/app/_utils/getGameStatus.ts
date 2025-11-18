@@ -20,5 +20,13 @@ export const getGameStatus = (gameState: TGameState | null): string => {
     return "Aguardando";
   }
 
+  if (gameState.status === EGameStatus.LOADING) {
+    return "Carregando";
+  }
+
+  if (gameState.status === EGameStatus.ERROR) {
+    return "Erro no handshake";
+  }
+
   return "Erro";
 };
