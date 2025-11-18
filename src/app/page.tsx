@@ -6,7 +6,7 @@ import { EGameStatus } from "@/core/module/game/domain/game.entity";
 import useWebSocket from "./_hooks/useWebSocket";
 import { getGameStatus } from "./_utils/getGameStatus";
 
-const currentIp = "192.168.18.90";
+const currentIp = "172.16.1.236";
 
 export default function Home() {
   const { gameState, isConnected, sendMessage } = useWebSocket(

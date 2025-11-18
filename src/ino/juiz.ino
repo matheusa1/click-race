@@ -67,14 +67,24 @@ void sendCommandToPlayer(uint64_t playerPipe, uint8_t playerAddr, int command) {
 
   byte cmdPacket[4] = {ORIGEM, playerAddr, command, 0};
 
-  if (radio.write(&cmdPacket, sizeof(cmdPacket))) {
-    Serial.print("Enviado comando ");
-    Serial.print(command);
-    Serial.print(" para o jogador ");
-    Serial.println(playerAddr);
-  } else {
-    Serial.print("Falha ao enviar comando para o jogador ");
-    Serial.println(playerAddr);
+  unsigned long inicio = millis();
+  while(millis() - inicio < 200){
+    radio.startListening();
+    delayMicroseconds(40);
+    radio.stopListening();
+
+    if(!radio.testCarrier()){
+      if (radio.write(&cmdPacket, sizeof(cmdPacket))) {
+        Serial.print("Enviado comando ");
+        Serial.print(command);
+        Serial.print(" para o jogador ");
+        Serial.println(playerAddr);
+      } else {
+        Serial.print("Falha ao enviar comando para o jogador ");
+        Serial.println(playerAddr);
+      }
+    }
+    delayMicroseconds(200);
   }
 
   radio.startListening();
@@ -87,6 +97,9 @@ int escutaHandShake(int comandoEsperado, uint8_t playerAddress) {
   unsigned long inicio = millis();
   while (millis() - inicio < TIMEOUT && recebidoComSucesso == 0) {
     byte pipeNum;
+
+    Serial.println("LOOP");
+
     if (radio.available(&pipeNum)) {
       byte pacote[4];
       radio.read(&pacote, sizeof(pacote));
@@ -94,6 +107,11 @@ int escutaHandShake(int comandoEsperado, uint8_t playerAddress) {
       uint8_t remetente = pacote[0];
       uint8_t destino = pacote[1];
       int comando = pacote[2];
+
+      Serial.print("Recebido comando ");
+      Serial.print(comando);
+      Serial.print(" da origem ");
+      Serial.println(remetente);
 
       if (remetente != playerAddress || destino != ORIGEM) {
         continue;
@@ -122,11 +140,23 @@ int resetPlayer(uint64_t playerPipe, int playerAddress) {
           resetCmd[2] = ACK;
         }
 
-        if(radio.write(&resetCmd, sizeof(resetCmd))){
-            Serial.print("Enviado ");
-            Serial.print(resetCmd[2]);
-            Serial.print(" para player ");
-            Serial.println(playerAddress);
+        unsigned long inicio = millis();
+        while(millis() - inicio < 200){
+          radio.startListening();
+          delayMicroseconds(50);
+          radio.stopListening();
+
+          if(!radio.testCarrier()){
+            if(radio.write(&resetCmd, sizeof(resetCmd))){
+                Serial.print("Enviado ");
+                Serial.print(resetCmd[2]);
+                Serial.print(" para player ");
+                Serial.println(playerAddress);
+                radio.startListening();
+                continue;
+            }
+          }
+          delayMicroseconds(200);
         }
 
         radio.startListening();

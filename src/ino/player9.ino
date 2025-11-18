@@ -44,7 +44,7 @@ void setup() {
   radio.setAutoAck(false);
   radio.setCRCLength(RF24_CRC_DISABLED);
   radio.setDataRate(RF24_250KBPS);
-
+  
   radio.openWritingPipe(address[1]);
   radio.openReadingPipe(1, address[0]);
 
@@ -74,10 +74,34 @@ int escutaHandShake(int comandoEsperado) {
 void enviaDados(int comando, int dado) {
   byte pacote[4] = {ORIGEM, JUIZ, (byte)comando, (byte)dado};
   radio.stopListening();
-  if (!radio.write(&pacote, sizeof(pacote))) {
+  
+  unsigned long inicio = millis();
+        while(millis() - inicio < 200){
+          radio.startListening();
+          delayMicroseconds(50);
+          radio.stopListening();
+
+          if(!radio.testCarrier()){
+            if (radio.write(&pacote, sizeof(pacote))) {
+              Serial.print("Enviado comando ");
+              Serial.print(comando);
+              Serial.println(" para o juiz ");
+              radio.startListening();
+              continue;
+            } else {
+              Serial.println("Falha no envio.");
+            }
+          }
+          delayMicroseconds(200);
+        }
+
+        radio.startListening();
+
+  if (radio.write(&pacote, sizeof(pacote))) {
     Serial.println("Falha no envio.");
   }
-  radio.startListening();
+
+  
 }
 
 int processaHandShake() {
@@ -100,8 +124,13 @@ void processaComandoRF() {
     uint8_t destino = pacote[1];
     int comando = pacote[2];
 
+    Serial.print("Recebido comando ");
+      Serial.print(comando);
+      Serial.print(" da origem ");
+      Serial.println(remetente);
+
     if (destino != ORIGEM || remetente != JUIZ) {
-      return;
+      return; 
     }
 
     switch(comando) {
@@ -125,12 +154,12 @@ void processaComandoRF() {
 
 void loop() {
   processaComandoRF();
-
+  
   debouncer.update();
   if (debouncer.fell() && jogoAtivo) {
     contador++;
     Serial.print("Clique: ");
     Serial.println(contador);
-    enviaDados(0, contador);
+    enviaDados(0, contador); 
   }
 }
